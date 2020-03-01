@@ -103,7 +103,7 @@ module MakeStack (Element: SERIALIZE) : (STACK with type element = Element.t) =
     let empty : stack = []
 
     let push (el : element) (s : stack) : stack =
-      el::s
+      el :: s
 
     let pop_helper (s : stack) : (element * stack) =
       match s with
@@ -126,10 +126,9 @@ module MakeStack (Element: SERIALIZE) : (STACK with type element = Element.t) =
       List.fold_left f init s
 
     let rec serialize (s : stack) : string =
-      match s with
-      | [] -> ""
-      | hd :: [] -> Element.serialize hd
-      | hd::tl -> Element.serialize hd ^ ":" ^ serialize tl
+      let string_join x y = Element.serialize y
+                            ^ (if x <> "" then ":" ^ x else "") in
+      fold_left string_join "" s
   end ;;
 
 (*......................................................................
@@ -137,12 +136,14 @@ module MakeStack (Element: SERIALIZE) : (STACK with type element = Element.t) =
   that you just defined to an appropriate module for serializing integers.
   ......................................................................*)
 
-module IntStack =
-  MakeStack (struct
-    type t =  int
+module IntSerialize : (SERIALIZE with type t = int) =
+  struct
+    type t = int
     let serialize = string_of_int
-  end)
-;;
+  end ;;
+
+module IntStack : (STACK with type element = IntSerialize.t) =
+  MakeStack(IntSerialize) ;;
 
 (*......................................................................
   Exercise 1C: Make a module `IntStringStack` that creates a stack whose
@@ -160,8 +161,11 @@ module IntStack =
   the string will be made up of alphanumeric characters only.
   ......................................................................*)
 
+module IntStringSerialize =  struct
+  type t = (int * string)
+  let serialize (n, s) =
+    "(" ^ string_of_int n ^ ",'" ^ s ^ "')"
+end ;;
+
 module IntStringStack =
-  MakeStack (struct
-    type t = int * string
-    let serialize (a,b) = "(" ^ (string_of_int a) ^ ", '" ^ b ^ "')" end)
-;;
+  MakeStack(IntStringSerialize) ;;
